@@ -23,7 +23,7 @@ async function getUserFromToken(token: string) {
         // @ts-ignore
         where: { id: decodedToken.id },
         select: {
-            id: true, name: true, email: true, orders: true,
+            id: true, name: true, email: true, orders: { include: { orderItems: { include: { item: true } } } }
         }
     })
     return user
@@ -110,6 +110,22 @@ app.get('/validate', async (req, res) => {
         const user = await getUserFromToken(token)
         res.send(user)
     } catch (err) {
+        res.status(400).send(err.message)
+    }
+})
+
+app.get('/orders', async (req, res) => {
+    const orders = await prisma.order.findMany({ include: { orderItems: { include: { item: true } } } })
+    res.send(orders)
+})
+
+app.post('/orderItems', async (req, res) => {
+    const { orderId, itemId, quantity } = req.body
+    try {
+        const newOrder = await prisma.orderItem.create({ data: { orderId: orderId, itemId: itemId, quantity: quantity } })
+        res.send(newOrder)
+    } catch (err) {
+        // @ts-ignore
         res.status(400).send(err.message)
     }
 })
