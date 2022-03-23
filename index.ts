@@ -23,7 +23,7 @@ async function getUserFromToken(token: string) {
         // @ts-ignore
         where: { id: decodedToken.id },
         select: {
-            id: true, name: true, email: true, orders: { include: { orderItems: { include: { item: true } } } }
+            id: true, name: true, email: true, orders: { include: { orderItems: { include: { item: true } } } }, basketItems: { include: { item: true } }
         }
     })
     return user
@@ -122,8 +122,34 @@ app.get('/orders', async (req, res) => {
 app.post('/orderItems', async (req, res) => {
     const { orderId, itemId, quantity } = req.body
     try {
-        const newOrder = await prisma.orderItem.create({ data: { orderId: orderId, itemId: itemId, quantity: quantity } })
-        res.send(newOrder)
+        const doExists = await prisma.orderItem.findFirst({ where: {orderId: orderId, itemId: itemId} })
+        if (doExists) throw new Error
+        else {
+            const newOrder = await prisma.orderItem.create({ data: { orderId: orderId, itemId: itemId, quantity: quantity } })
+            res.send(newOrder)
+        }
+
+    } catch (err) {
+        // @ts-ignore
+        res.status(400).send(err.message)
+    }
+})
+
+app.get('/basketItems', async (req, res) => {
+    const basketItems = await prisma.basketItem.findMany( { include: { item: true } } )
+    res.send(basketItems)
+})
+
+app.post('/basketItems', async (req, res) => {
+    const { userId, itemId, quantity } = req.body
+    try {
+        const doExists = await prisma.basketItem.findFirst({ where: {userId: userId, itemId: itemId} })
+        if (doExists) throw new Error
+        else {
+            const newOrder = await prisma.basketItem.create({ data: { userId: userId, itemId: itemId, quantity: quantity } })
+            res.send(newOrder)
+        }
+
     } catch (err) {
         // @ts-ignore
         res.status(400).send(err.message)
