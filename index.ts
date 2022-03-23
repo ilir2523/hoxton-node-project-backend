@@ -34,7 +34,7 @@ app.post('/sign-in', async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { email: email },
-            include: { orders: { include: { orderItems: { include: { item: true } } } } } 
+            include: { orders: { include: { orderItems: { include: { item: true } } } } }
         })
         const passwordMatches = bcrypt.compareSync(password, user.password)
         if (user && passwordMatches) {
@@ -49,7 +49,7 @@ app.post('/sign-in', async (req, res) => {
 })
 
 app.post('/sign-up', async (req, res) => {
-    const {email, password, name} = req.body
+    const { email, password, name } = req.body
 
     try {
         const hash = bcrypt.hashSync(password, 8)
@@ -59,7 +59,7 @@ app.post('/sign-up', async (req, res) => {
                 password: hash,
                 name: name
             },
-            select: {id: true, name: true, email: true, orders: true}
+            select: { id: true, name: true, email: true, orders: true }
         })
         res.send({ user, token: createToken(user.id) })
     } catch (err) {
@@ -122,11 +122,15 @@ app.get('/orders', async (req, res) => {
 app.post('/orderItems', async (req, res) => {
     const { orderId, itemId, quantity } = req.body
     try {
-        const doExists = await prisma.orderItem.findFirst({ where: {orderId: orderId, itemId: itemId} })
+        const doExists = await prisma.orderItem.findFirst({ where: { orderId: orderId, itemId: itemId } })
         if (doExists) throw new Error
         else {
-            const newOrder = await prisma.orderItem.create({ data: { orderId: orderId, itemId: itemId, quantity: quantity } })
-            res.send(newOrder)
+            const newOrderItem = await prisma.orderItem.create({ data: { orderId: orderId, itemId: itemId, quantity: quantity } })
+            const item = await prisma.item.findFirst({ where: { id: itemId } })
+            res.send(newOrderItem)
+            const order = await prisma.order.findFirst({ where: { id: orderId } })
+            const total = order.total + item.price
+            await prisma.order.update({ where: { id: orderId }, data: { total: total } })
         }
 
     } catch (err) {
@@ -136,20 +140,31 @@ app.post('/orderItems', async (req, res) => {
 })
 
 app.get('/basketItems', async (req, res) => {
-    const basketItems = await prisma.basketItem.findMany( { include: { item: true } } )
+    const basketItems = await prisma.basketItem.findMany({ include: { item: true } })
     res.send(basketItems)
 })
 
 app.post('/basketItems', async (req, res) => {
     const { userId, itemId, quantity } = req.body
     try {
-        const doExists = await prisma.basketItem.findFirst({ where: {userId: userId, itemId: itemId} })
+        const doExists = await prisma.basketItem.findFirst({ where: { userId: userId, itemId: itemId } })
         if (doExists) throw new Error
         else {
             const newOrder = await prisma.basketItem.create({ data: { userId: userId, itemId: itemId, quantity: quantity } })
             res.send(newOrder)
         }
 
+    } catch (err) {
+        // @ts-ignore
+        res.status(400).send(err.message)
+    }
+})
+
+app.post('/deleteBasketItems', async (req, res) => {
+    const { userId, itemId } = req.body
+    try {
+        const deleted = await prisma.basketItem.delete({ where: { userId_itemId: { userId: userId, itemId: itemId } }})
+        res.send({ message: 'BasketItem successfully deleted.', deleted})
     } catch (err) {
         // @ts-ignore
         res.status(400).send(err.message)
