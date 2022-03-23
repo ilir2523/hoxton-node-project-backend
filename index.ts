@@ -129,7 +129,7 @@ app.post('/orderItems', async (req, res) => {
             const item = await prisma.item.findFirst({ where: { id: itemId } })
             res.send(newOrderItem)
             const order = await prisma.order.findFirst({ where: { id: orderId } })
-            const total = order.total + item.price
+            const total = order.total + (item.price * newOrderItem.quantity)
             await prisma.order.update({ where: { id: orderId }, data: { total: total } })
         }
 
@@ -160,11 +160,30 @@ app.post('/basketItems', async (req, res) => {
     }
 })
 
+app.patch('/basketItemsQty', async (req, res) => {
+    const { userId, itemId, quantity } = req.body
+    try {
+        const newOrder = await prisma.basketItem.update({
+            where: {
+                userId_itemId: {
+                    userId: userId,
+                    itemId: itemId
+                }
+            },
+            data: { quantity: quantity }
+        })
+        res.send(newOrder)
+    } catch (err) {
+        // @ts-ignore
+        res.status(400).send(err.message)
+    }
+})
+
 app.post('/deleteBasketItems', async (req, res) => {
     const { userId, itemId } = req.body
     try {
-        const deleted = await prisma.basketItem.delete({ where: { userId_itemId: { userId: userId, itemId: itemId } }})
-        res.send({ message: 'BasketItem successfully deleted.', deleted})
+        const deleted = await prisma.basketItem.delete({ where: { userId_itemId: { userId: userId, itemId: itemId } } })
+        res.send({ message: 'BasketItem successfully deleted.', deleted })
     } catch (err) {
         // @ts-ignore
         res.status(400).send(err.message)
