@@ -57,7 +57,8 @@ app.post('/sign-up', async (req, res) => {
             data: {
                 email: email,
                 password: hash,
-                name: name
+                name: name,
+                orders: { create: [{ total: 0 }] }
             },
             select: { id: true, name: true, email: true, orders: true }
         })
@@ -104,7 +105,7 @@ app.get('/items', async (req, res) => {
 app.get('/items/:id', async (req, res) => {
     const id = Number(req.params.id)
     try {
-        const item = await prisma.item.findFirst({ where: { id: id } })
+        const item = await prisma.item.findFirst({ where: { id: id }, include: { Comment: { include: { user: { select: { name:true } } } } } })
         if (item) {
             res.send(item)
         } else res.status(404).send({ error: 'Item not found.' })
@@ -198,6 +199,25 @@ app.post('/deleteBasketItems', async (req, res) => {
         res.send({ message: 'BasketItem successfully deleted.', deleted })
     } catch (err) {
         // @ts-ignore
+        res.status(400).send(err.message)
+    }
+})
+
+app.get('/comments', async (req, res) => {
+    try {
+        const comments = await prisma.comment.findMany( )
+        res.send(comments)
+    } catch (err) {
+        res.status(400).send(err.message)
+    }
+})
+
+app.post('/comments', async (req, res) => {
+    const { comment, userId, itemId } = req.body
+    try {
+        const newComment = await prisma.comment.create({ data: { comment: comment, userId: userId, itemId: itemId} })
+        res.send(newComment)
+    } catch (err) {
         res.status(400).send(err.message)
     }
 })

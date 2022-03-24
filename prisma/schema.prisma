@@ -17,12 +17,13 @@ model User {
   password    String
   orders      Order[]
   basketItems BasketItem[]
+  Comment     Comment[]
 }
 
 model BasketItem {
   // id       Int  @id @default(autoincrement())
-  user     User @relation(fields: [userId], references: [id])
-  item     Item @relation(fields: [itemId], references: [id])
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item     Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
   userId   Int
   itemId   Int
   quantity Int
@@ -32,7 +33,7 @@ model BasketItem {
 
 model Order {
   id         Int         @id @default(autoincrement())
-  user       User        @relation(fields: [userId], references: [id])
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
   total      Float
   orderItems OrderItem[]
@@ -40,8 +41,8 @@ model Order {
 
 model OrderItem {
   // id       Int   @id @default(autoincrement())
-  order    Order @relation(fields: [orderId], references: [id])
-  item     Item  @relation(fields: [itemId], references: [id])
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item     Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
   orderId  Int
   itemId   Int
   quantity Int
@@ -54,7 +55,17 @@ model Item {
   title      String       @unique
   image      String
   price      Float
-  category   String       @default("Tech")
+  category   String       
   basket     BasketItem[]
   orderItems OrderItem[]
+  Comment    Comment[]
+}
+
+model Comment {
+  id      Int    @id @default(autoincrement())
+  comment String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item    Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId  Int
+  itemId  Int
 }
