@@ -96,7 +96,7 @@ app.get('/items', async (req, res) => {
     }
     if (typeof category === 'string') {
         itemsToSend = itemsToSend.filter(item =>
-            item.category.includes(category) )
+            item.category === category) 
     }
     res.send(itemsToSend)
 })
