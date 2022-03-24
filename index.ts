@@ -87,11 +87,16 @@ app.post('/sign-up', async (req, res) => {
 app.get('/items', async (req, res) => {
     const items = await prisma.item.findMany()
     const search = req.query.search
+    const category = req.query.category
     let itemsToSend = items
 
     if (typeof search === 'string') {
         itemsToSend = itemsToSend.filter(item =>
             item.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()) )
+    }
+    if (typeof category === 'string') {
+        itemsToSend = itemsToSend.filter(item =>
+            item.category.includes(category) )
     }
     res.send(itemsToSend)
 })
