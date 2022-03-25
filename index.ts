@@ -57,7 +57,8 @@ app.post('/sign-up', async (req, res) => {
             data: {
                 email: email,
                 password: hash,
-                name: name
+                name: name,
+                orders: { create: [{ total: 0 }] }
             },
             select: { id: true, name: true, email: true, orders: true }
         })
@@ -67,22 +68,19 @@ app.post('/sign-up', async (req, res) => {
     }
 })
 
-// app.patch('/changePassword', async (req, res) => {
-//     const { email, password } = req.body
-//     const user = await prisma.user.findUnique({ where: { email: email } })
+app.patch('/changePassword', async (req, res) => {
+    const { email, password, newpassword } = req.body
+    const user = await prisma.user.findFirst({ where: { email: email, password: password } })
 
-//     if (user) {
-//         try {
-//             const hash = bcrypt.hashSync(password, 8)
-//             const updateUser = await prisma.user.update({ where: { email }, data: { password: hash } })
-//             res.send({ updateUser, token: createToken(updateUser.id) })
-//         } catch (err) {
-//             // @ts-ignore
-//             res.status(400).send(`<pre> ${err.message} </pre>`)
-//         }
-//     } else res.status(404).send({ error: "User not found" })
-
-// })
+        try {
+            const hash = bcrypt.hashSync(newpassword, 8)
+            const updateUser = await prisma.user.update({ where: { email }, data: { password: hash } })
+            res.send({ updateUser, token: createToken(updateUser.id) })
+        } catch (err) {
+            // @ts-ignore
+            res.status(400).send({ error: 'User/password invalid.' })
+        }
+})
 
 app.get('/items', async (req, res) => {
     const items = await prisma.item.findMany()
@@ -104,7 +102,7 @@ app.get('/items', async (req, res) => {
 app.get('/items/:id', async (req, res) => {
     const id = Number(req.params.id)
     try {
-        const item = await prisma.item.findFirst({ where: { id: id } })
+        const item = await prisma.item.findFirst({ where: { id: id }, include: { Comment: { include: { user: { select: { name:true } } } } } })
         if (item) {
             res.send(item)
         } else res.status(404).send({ error: 'Item not found.' })
@@ -198,6 +196,25 @@ app.post('/deleteBasketItems', async (req, res) => {
         res.send({ message: 'BasketItem successfully deleted.', deleted })
     } catch (err) {
         // @ts-ignore
+        res.status(400).send(err.message)
+    }
+})
+
+app.get('/comments', async (req, res) => {
+    try {
+        const comments = await prisma.comment.findMany( )
+        res.send(comments)
+    } catch (err) {
+        res.status(400).send(err.message)
+    }
+})
+
+app.post('/comments', async (req, res) => {
+    const { comment, userId, itemId } = req.body
+    try {
+        const newComment = await prisma.comment.create({ data: { comment: comment, userId: userId, itemId: itemId} })
+        res.send(newComment)
+    } catch (err) {
         res.status(400).send(err.message)
     }
 })
