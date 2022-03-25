@@ -68,22 +68,19 @@ app.post('/sign-up', async (req, res) => {
     }
 })
 
-// app.patch('/changePassword', async (req, res) => {
-//     const { email, password } = req.body
-//     const user = await prisma.user.findUnique({ where: { email: email } })
+app.patch('/changePassword', async (req, res) => {
+    const { email, password, newpassword } = req.body
+    const user = await prisma.user.findFirst({ where: { email: email, password: password } })
 
-//     if (user) {
-//         try {
-//             const hash = bcrypt.hashSync(password, 8)
-//             const updateUser = await prisma.user.update({ where: { email }, data: { password: hash } })
-//             res.send({ updateUser, token: createToken(updateUser.id) })
-//         } catch (err) {
-//             // @ts-ignore
-//             res.status(400).send(`<pre> ${err.message} </pre>`)
-//         }
-//     } else res.status(404).send({ error: "User not found" })
-
-// })
+        try {
+            const hash = bcrypt.hashSync(newpassword, 8)
+            const updateUser = await prisma.user.update({ where: { email }, data: { password: hash } })
+            res.send({ updateUser, token: createToken(updateUser.id) })
+        } catch (err) {
+            // @ts-ignore
+            res.status(400).send({ error: 'User/password invalid.' })
+        }
+})
 
 app.get('/items', async (req, res) => {
     const items = await prisma.item.findMany()
