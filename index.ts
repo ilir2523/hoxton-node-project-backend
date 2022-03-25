@@ -69,17 +69,24 @@ app.post('/sign-up', async (req, res) => {
 })
 
 app.patch('/changePassword', async (req, res) => {
-    const { email, password, newpassword } = req.body
-    const user = await prisma.user.findFirst({ where: { email: email, password: password } })
-
+    const { email, password, newPassword } = req.body
+    const user = await prisma.user.findFirst({ where: { email: email }, include: { orders: { include: { orderItems: { include: { item: true } } } } }})
+    const passwordMatches = bcrypt.compareSync(password, user.password)
+    if (user && passwordMatches) {
         try {
-            const hash = bcrypt.hashSync(newpassword, 8)
-            const updateUser = await prisma.user.update({ where: { email }, data: { password: hash } })
-            res.send({ updateUser, token: createToken(updateUser.id) })
+            const hash = bcrypt.hashSync(newPassword, 8)
+            const updateUser = await prisma.user.update({ 
+                where: { 
+                    email: email, 
+                }, 
+                data: { password: hash } })
+            const { id, name, orders } = user
+            res.send({ user: { id, name, email, orders }, token: createToken(user.id) })
         } catch (err) {
             // @ts-ignore
             res.status(400).send({ error: 'User/password invalid.' })
         }
+    } else res.status(400).send({ error: 'User/password invalid.' })
 })
 
 app.get('/items', async (req, res) => {
